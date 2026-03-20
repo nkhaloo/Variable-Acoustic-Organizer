@@ -173,6 +173,7 @@ def extract_features_folder(
     config_path: str | os.PathLike[str],
     output_dir: str | os.PathLike[str],
     combined_csv: str | os.PathLike[str] | None = None,
+    write_per_file_csvs: bool = True,
     smileextract_path: str | os.PathLike[str] | None = None,
     opensmile_home: str | os.PathLike[str] | None = None,
     input_option: str = "-I",
@@ -187,8 +188,10 @@ def extract_features_folder(
 ) -> pd.DataFrame:
     """Extract features for all WAV files in a folder.
 
-    Writes one CSV per recording into `output_dir` and also writes a single
-    combined CSV (defaults to `<output_dir>/combined.csv`).
+    By default, writes one CSV per recording into `output_dir` and also writes a
+    single combined CSV (defaults to `<output_dir>/combined.csv`).
+
+    If `write_per_file_csvs` is False, only the combined CSV is written.
 
     The returned DataFrame is the concatenation of all recordings and includes
     a `recording_column` so you can group rows by source file.
@@ -208,7 +211,7 @@ def extract_features_folder(
     frames: list[pd.DataFrame] = []
 
     for wav_path in wav_paths:
-        per_file_csv = out_dir / f"{wav_path.stem}.csv"
+        per_file_csv = (out_dir / f"{wav_path.stem}.csv") if write_per_file_csvs else None
         df = extract_features(
             wav_path,
             config_path=config_path,

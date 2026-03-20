@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # Variable Acoustic Organizer (VAO)
 
 VAO is a Python package for:
@@ -15,3 +16,5 @@ pip install -e
 
 ### to update 
 pip install --upgrade --no-cache-dir git+https://github.com/nkhaloo/Variable-Acoustic-Organizer.git
+=======
+>>>>>>> Stashed changes

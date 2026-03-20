@@ -82,7 +82,7 @@ def get_preset(name: str, *, opensmile_home: str | Path) -> OpenSmilePreset:
         return preset_egemapsv02_lld_25ms_1ms(opensmile_home=opensmile_home)
 
     raise ValueError(
-        f"Unknown preset {name!r}. Supported presets: {_PRESET_COMPARE16_LLD_25MS_1MS!r}"
+        f"Unknown preset {name!r}. Supported presets: {_PRESET_EGEMAPSV02_LLD_25MS_1MS!r}"
     )
 
 

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "vao"
+version = "0.1.0"
+description = "Variable Acoustic Organizer: openSMILE feature extraction + rule-based acoustic labeling"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "Noah Khaloo" }]
+license = { text = "MIT" }
+dependencies = [
+  "numpy>=1.23",
+  "pandas>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vao"]
+
+[tool.hatch.build]
+include = [
+  "src/vao/opensmile_configs/*.conf",
+]

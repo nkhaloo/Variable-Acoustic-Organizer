@@ -1,0 +1,175 @@
+Column glossary (brief, one line per column)
+
+recording: Source WAV filename.
+name: openSMILE instance name (usually WAV-derived).
+frameTime: Frame timestamp in seconds.
+
+F0final_sma: Smoothed fundamental frequency (Hz).
+voicingFinalUnclipped_sma: Smoothed voicing probability (0–1).
+jitterLocal_sma: Smoothed local jitter (period perturbation).
+jitterDDP_sma: Smoothed DDP jitter (3-period perturbation).
+shimmerLocal_sma: Smoothed local shimmer (amplitude perturbation).
+logHNR_sma: Smoothed log harmonic-to-noise ratio.
+
+audspec_lengthL1norm_sma: Smoothed L1 norm of auditory spectrum.
+audspecRasta_lengthL1norm_sma: Smoothed L1 norm of RASTA auditory spectrum.
+pcm_RMSenergy_sma: Smoothed RMS energy.
+pcm_zcr_sma: Smoothed zero-crossing rate.
+
+audSpec_Rfilt_sma[0]: Smoothed auditory filterbank band energy (band 0).
+audSpec_Rfilt_sma[1]: Smoothed auditory filterbank band energy (band 1).
+audSpec_Rfilt_sma[2]: Smoothed auditory filterbank band energy (band 2).
+audSpec_Rfilt_sma[3]: Smoothed auditory filterbank band energy (band 3).
+audSpec_Rfilt_sma[4]: Smoothed auditory filterbank band energy (band 4).
+audSpec_Rfilt_sma[5]: Smoothed auditory filterbank band energy (band 5).
+audSpec_Rfilt_sma[6]: Smoothed auditory filterbank band energy (band 6).
+audSpec_Rfilt_sma[7]: Smoothed auditory filterbank band energy (band 7).
+audSpec_Rfilt_sma[8]: Smoothed auditory filterbank band energy (band 8).
+audSpec_Rfilt_sma[9]: Smoothed auditory filterbank band energy (band 9).
+audSpec_Rfilt_sma[10]: Smoothed auditory filterbank band energy (band 10).
+audSpec_Rfilt_sma[11]: Smoothed auditory filterbank band energy (band 11).
+audSpec_Rfilt_sma[12]: Smoothed auditory filterbank band energy (band 12).
+audSpec_Rfilt_sma[13]: Smoothed auditory filterbank band energy (band 13).
+audSpec_Rfilt_sma[14]: Smoothed auditory filterbank band energy (band 14).
+audSpec_Rfilt_sma[15]: Smoothed auditory filterbank band energy (band 15).
+audSpec_Rfilt_sma[16]: Smoothed auditory filterbank band energy (band 16).
+audSpec_Rfilt_sma[17]: Smoothed auditory filterbank band energy (band 17).
+audSpec_Rfilt_sma[18]: Smoothed auditory filterbank band energy (band 18).
+audSpec_Rfilt_sma[19]: Smoothed auditory filterbank band energy (band 19).
+audSpec_Rfilt_sma[20]: Smoothed auditory filterbank band energy (band 20).
+audSpec_Rfilt_sma[21]: Smoothed auditory filterbank band energy (band 21).
+audSpec_Rfilt_sma[22]: Smoothed auditory filterbank band energy (band 22).
+audSpec_Rfilt_sma[23]: Smoothed auditory filterbank band energy (band 23).
+audSpec_Rfilt_sma[24]: Smoothed auditory filterbank band energy (band 24).
+audSpec_Rfilt_sma[25]: Smoothed auditory filterbank band energy (band 25).
+
+pcm_fftMag_fband250-650_sma: Smoothed spectral energy in 250–650 Hz.
+pcm_fftMag_fband1000-4000_sma: Smoothed spectral energy in 1–4 kHz.
+
+pcm_fftMag_spectralRollOff25.0_sma: Smoothed 25% spectral roll-off frequency.
+pcm_fftMag_spectralRollOff50.0_sma: Smoothed 50% spectral roll-off frequency.
+pcm_fftMag_spectralRollOff75.0_sma: Smoothed 75% spectral roll-off frequency.
+pcm_fftMag_spectralRollOff90.0_sma: Smoothed 90% spectral roll-off frequency.
+
+pcm_fftMag_spectralFlux_sma: Smoothed spectral flux (change).
+pcm_fftMag_spectralCentroid_sma: Smoothed spectral centroid.
+pcm_fftMag_spectralEntropy_sma: Smoothed spectral entropy.
+pcm_fftMag_spectralVariance_sma: Smoothed spectral variance/spread.
+pcm_fftMag_spectralSkewness_sma: Smoothed spectral skewness.
+pcm_fftMag_spectralKurtosis_sma: Smoothed spectral kurtosis.
+pcm_fftMag_spectralSlope_sma: Smoothed spectral slope/tilt.
+
+pcm_fftMag_psySharpness_sma: Smoothed psychoacoustic sharpness.
+pcm_fftMag_spectralHarmonicity_sma: Smoothed spectral harmonicity.
+
+mfcc_sma[1]: Smoothed MFCC coefficient 1.
+mfcc_sma[2]: Smoothed MFCC coefficient 2.
+mfcc_sma[3]: Smoothed MFCC coefficient 3.
+mfcc_sma[4]: Smoothed MFCC coefficient 4.
+mfcc_sma[5]: Smoothed MFCC coefficient 5.
+mfcc_sma[6]: Smoothed MFCC coefficient 6.
+mfcc_sma[7]: Smoothed MFCC coefficient 7.
+mfcc_sma[8]: Smoothed MFCC coefficient 8.
+mfcc_sma[9]: Smoothed MFCC coefficient 9.
+mfcc_sma[10]: Smoothed MFCC coefficient 10.
+mfcc_sma[11]: Smoothed MFCC coefficient 11.
+mfcc_sma[12]: Smoothed MFCC coefficient 12.
+mfcc_sma[13]: Smoothed MFCC coefficient 13.
+mfcc_sma[14]: Smoothed MFCC coefficient 14.
+
+formantFinalFreq[0]: Smoothed formant frequency (F1).
+formantFinalFreq[1]: Smoothed formant frequency (F2).
+formantFinalFreq[2]: Smoothed formant frequency (F3).
+formantFinalFreq[3]: Smoothed formant frequency (F4).
+formantFinalFreq[4]: Smoothed formant frequency (F5).
+formantFinalBW[0]: Smoothed formant bandwidth (F1).
+formantFinalBW[1]: Smoothed formant bandwidth (F2).
+formantFinalBW[2]: Smoothed formant bandwidth (F3).
+formantFinalBW[3]: Smoothed formant bandwidth (F4).
+formantFinalBW[4]: Smoothed formant bandwidth (F5).
+
+F0final_sma_de: Delta (time derivative) of F0final_sma.
+voicingFinalUnclipped_sma_de: Delta of voicingFinalUnclipped_sma.
+jitterLocal_sma_de: Delta of jitterLocal_sma.
+jitterDDP_sma_de: Delta of jitterDDP_sma.
+shimmerLocal_sma_de: Delta of shimmerLocal_sma.
+logHNR_sma_de: Delta of logHNR_sma.
+
+audspec_lengthL1norm_sma_de: Delta of audspec_lengthL1norm_sma.
+audspecRasta_lengthL1norm_sma_de: Delta of audspecRasta_lengthL1norm_sma.
+pcm_RMSenergy_sma_de: Delta of pcm_RMSenergy_sma.
+pcm_zcr_sma_de: Delta of pcm_zcr_sma.
+
+audSpec_Rfilt_sma_de[0]: Delta of audSpec_Rfilt_sma[0].
+audSpec_Rfilt_sma_de[1]: Delta of audSpec_Rfilt_sma[1].
+audSpec_Rfilt_sma_de[2]: Delta of audSpec_Rfilt_sma[2].
+audSpec_Rfilt_sma_de[3]: Delta of audSpec_Rfilt_sma[3].
+audSpec_Rfilt_sma_de[4]: Delta of audSpec_Rfilt_sma[4].
+audSpec_Rfilt_sma_de[5]: Delta of audSpec_Rfilt_sma[5].
+audSpec_Rfilt_sma_de[6]: Delta of audSpec_Rfilt_sma[6].
+audSpec_Rfilt_sma_de[7]: Delta of audSpec_Rfilt_sma[7].
+audSpec_Rfilt_sma_de[8]: Delta of audSpec_Rfilt_sma[8].
+audSpec_Rfilt_sma_de[9]: Delta of audSpec_Rfilt_sma[9].
+audSpec_Rfilt_sma_de[10]: Delta of audSpec_Rfilt_sma[10].
+audSpec_Rfilt_sma_de[11]: Delta of audSpec_Rfilt_sma[11].
+audSpec_Rfilt_sma_de[12]: Delta of audSpec_Rfilt_sma[12].
+audSpec_Rfilt_sma_de[13]: Delta of audSpec_Rfilt_sma[13].
+audSpec_Rfilt_sma_de[14]: Delta of audSpec_Rfilt_sma[14].
+audSpec_Rfilt_sma_de[15]: Delta of audSpec_Rfilt_sma[15].
+audSpec_Rfilt_sma_de[16]: Delta of audSpec_Rfilt_sma[16].
+audSpec_Rfilt_sma_de[17]: Delta of audSpec_Rfilt_sma[17].
+audSpec_Rfilt_sma_de[18]: Delta of audSpec_Rfilt_sma[18].
+audSpec_Rfilt_sma_de[19]: Delta of audSpec_Rfilt_sma[19].
+audSpec_Rfilt_sma_de[20]: Delta of audSpec_Rfilt_sma[20].
+audSpec_Rfilt_sma_de[21]: Delta of audSpec_Rfilt_sma[21].
+audSpec_Rfilt_sma_de[22]: Delta of audSpec_Rfilt_sma[22].
+audSpec_Rfilt_sma_de[23]: Delta of audSpec_Rfilt_sma[23].
+audSpec_Rfilt_sma_de[24]: Delta of audSpec_Rfilt_sma[24].
+audSpec_Rfilt_sma_de[25]: Delta of audSpec_Rfilt_sma[25].
+
+pcm_fftMag_fband250-650_sma_de: Delta of pcm_fftMag_fband250-650_sma.
+pcm_fftMag_fband1000-4000_sma_de: Delta of pcm_fftMag_fband1000-4000_sma.
+
+pcm_fftMag_spectralRollOff25.0_sma_de: Delta of pcm_fftMag_spectralRollOff25.0_sma.
+pcm_fftMag_spectralRollOff50.0_sma_de: Delta of pcm_fftMag_spectralRollOff50.0_sma.
+pcm_fftMag_spectralRollOff75.0_sma_de: Delta of pcm_fftMag_spectralRollOff75.0_sma.
+pcm_fftMag_spectralRollOff90.0_sma_de: Delta of pcm_fftMag_spectralRollOff90.0_sma.
+
+pcm_fftMag_spectralFlux_sma_de: Delta of pcm_fftMag_spectralFlux_sma.
+pcm_fftMag_spectralCentroid_sma_de: Delta of pcm_fftMag_spectralCentroid_sma.
+pcm_fftMag_spectralEntropy_sma_de: Delta of pcm_fftMag_spectralEntropy_sma.
+pcm_fftMag_spectralVariance_sma_de: Delta of pcm_fftMag_spectralVariance_sma.
+pcm_fftMag_spectralSkewness_sma_de: Delta of pcm_fftMag_spectralSkewness_sma.
+pcm_fftMag_spectralKurtosis_sma_de: Delta of pcm_fftMag_spectralKurtosis_sma.
+pcm_fftMag_spectralSlope_sma_de: Delta of pcm_fftMag_spectralSlope_sma.
+
+pcm_fftMag_psySharpness_sma_de: Delta of pcm_fftMag_psySharpness_sma.
+pcm_fftMag_spectralHarmonicity_sma_de: Delta of pcm_fftMag_spectralHarmonicity_sma.
+
+mfcc_sma_de[1]: Delta of mfcc_sma[1].
+mfcc_sma_de[2]: Delta of mfcc_sma[2].
+mfcc_sma_de[3]: Delta of mfcc_sma[3].
+mfcc_sma_de[4]: Delta of mfcc_sma[4].
+mfcc_sma_de[5]: Delta of mfcc_sma[5].
+mfcc_sma_de[6]: Delta of mfcc_sma[6].
+mfcc_sma_de[7]: Delta of mfcc_sma[7].
+mfcc_sma_de[8]: Delta of mfcc_sma[8].
+mfcc_sma_de[9]: Delta of mfcc_sma[9].
+mfcc_sma_de[10]: Delta of mfcc_sma[10].
+mfcc_sma_de[11]: Delta of mfcc_sma[11].
+mfcc_sma_de[12]: Delta of mfcc_sma[12].
+mfcc_sma_de[13]: Delta of mfcc_sma[13].
+mfcc_sma_de[14]: Delta of mfcc_sma[14].
+
+formantFinalFreq_de[0]: Delta of formantFinalFreq[0].
+formantFinalFreq_de[1]: Delta of formantFinalFreq[1].
+formantFinalFreq_de[2]: Delta of formantFinalFreq[2].
+formantFinalFreq_de[3]: Delta of formantFinalFreq[3].
+formantFinalFreq_de[4]: Delta of formantFinalFreq[4].
+formantFinalBW_de[0]: Delta of formantFinalBW[0].
+formantFinalBW_de[1]: Delta of formantFinalBW[1].
+formantFinalBW_de[2]: Delta of formantFinalBW[2].
+formantFinalBW_de[3]: Delta of formantFinalBW[3].
+formantFinalBW_de[4]: Delta of formantFinalBW[4].
+
+Notes: "_sma" means smoothed; "_de" means delta (derivative).

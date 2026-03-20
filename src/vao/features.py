@@ -11,6 +11,67 @@ import pandas as pd
 from .opensmile_runner import run_smileextract
 
 
+def _nanify_egemaps_placeholder_zeros(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert openSMILE placeholder 0s to NaN for eGeMAPS-style outputs.
+
+    In the shipped GeMAPS/eGeMAPS configs, several voicing-dependent LLD streams
+    emit 0.0 for frames where the value is undefined (e.g., unvoiced frames).
+    This makes it hard to distinguish a true numeric 0 from "not computed".
+
+    We apply a conservative transformation:
+    - Detect an "unvoiced/undefined" frame mask from a small set of key columns.
+    - For *_sma3nz and *_sma3nz_de columns, replace 0.0 with NaN *only* on those
+      unvoiced/undefined frames.
+    - For formant frequency/bandwidth columns, also replace 0.0 with NaN (0 Hz
+      and 0 bandwidth are not physically meaningful and are always placeholders).
+
+    This function is a no-op for non-eGeMAPS-style outputs.
+    """
+
+    if df.empty:
+        return df
+
+    # Heuristic: only run on eGeMAPS-style outputs.
+    if not any("_sma3nz" in c for c in df.columns):
+        return df
+    if not any(c.startswith("F0semitoneFrom27.5Hz") for c in df.columns):
+        return df
+
+    # Replace placeholder zeros for all "nz" outputs.
+    #
+    # In the shipped eGeMAPS pipeline, 0.0 is frequently used to represent
+    # "undefined" for voicing-dependent features (notably F0 and related).
+    # Some other streams (e.g., formants) may not drop to 0 due to the
+    # noZeroSma smoother behaviour, so a row-level "all keys are zero" mask is
+    # not reliable.
+    nz_base_cols = [c for c in df.columns if c.endswith("_sma3nz")]
+    for col in nz_base_cols:
+        if pd.api.types.is_numeric_dtype(df[col]):
+            df.loc[df[col] == 0, col] = pd.NA
+
+    # Propagate missingness into delta columns (if base is missing, delta is too).
+    nz_delta_cols = [c for c in df.columns if c.endswith("_sma3nz_de")]
+    for delta_col in nz_delta_cols:
+        base_col = delta_col[: -len("_de")]
+        if base_col in df.columns and pd.api.types.is_numeric_dtype(df[delta_col]):
+            df.loc[df[base_col].isna(), delta_col] = pd.NA
+
+    # Additionally, formant frequency/bandwidth = 0 is always a placeholder.
+    always_missing_prefixes = (
+        "F1frequency",
+        "F2frequency",
+        "F3frequency",
+        "F1bandwidth",
+        "F2bandwidth",
+        "F3bandwidth",
+    )
+    for col in df.columns:
+        if col.startswith(always_missing_prefixes) and pd.api.types.is_numeric_dtype(df[col]):
+            df.loc[df[col] == 0, col] = pd.NA
+
+    return df
+
+
 def _guess_csv_delimiter(path: Path) -> str:
     with path.open("r", newline="") as f:
         sample = f.read(4096)
@@ -88,10 +149,17 @@ def extract_features(
     delim = _guess_csv_delimiter(output_path) if delimiter == "auto" else delimiter
     df = pd.read_csv(output_path, sep=delim)
 
+    df = _nanify_egemaps_placeholder_zeros(df)
+
     if add_time_column:
         likely_time_cols = {"time", "Time", "timestamp", "frameTime", "frame_time", "t"}
         if not any(col in likely_time_cols for col in df.columns):
             df.insert(0, time_column, df.index.to_numpy() * float(frame_step_s))
+
+    # If the caller requested a persistent output CSV, rewrite it after
+    # post-processing so the on-disk CSV matches the returned DataFrame.
+    if output_csv is not None:
+        df.to_csv(output_path, index=False, sep=delim, na_rep="NaN")
 
     if tmpdir is not None:
         tmpdir.cleanup()
@@ -163,6 +231,6 @@ def extract_features_folder(
     combined = pd.concat(frames, ignore_index=True)
 
     combined_path = Path(combined_csv).expanduser() if combined_csv is not None else (out_dir / "combined.csv")
-    combined.to_csv(combined_path, index=False)
+    combined.to_csv(combined_path, index=False, na_rep="NaN")
 
     return combined

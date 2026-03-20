@@ -15,5 +15,5 @@ cd Variable-Acoustic-Organizer
 pip install -e
 
 ### to update 
-pip install --upgrade --no-cache-dir git+https://github.com/nkhaloo/Variable-Acoustic-Organizer.git
+python -m pip install -e . --upgrade
 

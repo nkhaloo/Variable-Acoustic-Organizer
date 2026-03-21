@@ -10,7 +10,9 @@ pip install git+https://github.com/nkhaloo/Variable-Acoustic-Organizer.git
 or 
 
 git clone https://github.com/nkhaloo/Variable-Acoustic-Organizer.git
+
 cd Variable-Acoustic-Organizer 
+
 pip install -e
 
 ### to update 

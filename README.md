@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 # Variable Acoustic Organizer (VAO)
 
 VAO is a Python package for:

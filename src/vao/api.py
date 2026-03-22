@@ -90,4 +90,8 @@ def vao_extract(
             voiced_col=voiced_col,
         )
 
+        # Keep the on-disk combined CSV consistent with the returned DataFrame.
+        combined_path = Path(combined_csv).expanduser() if combined_csv is not None else (output_dir_path / "combined.csv")
+        combined.to_csv(combined_path, index=False, na_rep="NaN")
+
     return combined

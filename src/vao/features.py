@@ -61,9 +61,13 @@ def _nanify_egemaps_placeholder_zeros(df: pd.DataFrame) -> pd.DataFrame:
         "F1frequency",
         "F2frequency",
         "F3frequency",
+        "F4frequency",
+        "F5frequency",
         "F1bandwidth",
         "F2bandwidth",
         "F3bandwidth",
+        "F4bandwidth",
+        "F5bandwidth",
     )
     for col in df.columns:
         if col.startswith(always_missing_prefixes) and pd.api.types.is_numeric_dtype(df[col]):

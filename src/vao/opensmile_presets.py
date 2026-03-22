@@ -39,12 +39,25 @@ def preset_egemapsv02_lld_25ms_1ms(*, opensmile_home: str | Path) -> OpenSmilePr
     std_wave_input = opensmile_home / "config" / "shared" / "standard_wave_input.conf.inc"
     gemaps_core_lld = opensmile_home / "config" / "gemaps" / "v01b" / "GeMAPSv01b_core.lld.conf.inc"
     egemaps_core_lld = opensmile_home / "config" / "egemaps" / "v02" / "eGeMAPSv02_core.lld.conf.inc"
+    compare16_core_lld = opensmile_home / "config" / "compare16" / "ComParE_2016_core.lld.conf.inc"
 
     buffer_rb = opensmile_home / "config" / "shared" / "BufferModeRb.conf.inc"
     buffer_rblag = opensmile_home / "config" / "shared" / "BufferModeRbLag.conf.inc"
     buffer_conf = opensmile_home / "config" / "shared" / "BufferMode.conf.inc"
 
-    missing = [p for p in (std_wave_input, gemaps_core_lld, egemaps_core_lld, buffer_rb, buffer_rblag, buffer_conf) if not p.is_file()]
+    missing = [
+        p
+        for p in (
+            std_wave_input,
+            gemaps_core_lld,
+            egemaps_core_lld,
+            compare16_core_lld,
+            buffer_rb,
+            buffer_rblag,
+            buffer_conf,
+        )
+        if not p.is_file()
+    ]
     if missing:
         missing_str = "\n".join(str(p) for p in missing)
         raise FileNotFoundError(
@@ -63,6 +76,8 @@ def preset_egemapsv02_lld_25ms_1ms(*, opensmile_home: str | Path) -> OpenSmilePr
         str(gemaps_core_lld),
         "-egemapsCoreLld",
         str(egemaps_core_lld),
+        "-compare16CoreLld",
+        str(compare16_core_lld),
         "-bufferModeRbConf",
         str(buffer_rb),
         "-bufferModeRbLagConf",

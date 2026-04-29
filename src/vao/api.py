@@ -8,7 +8,7 @@ from .features import extract_features_folder
 from .opensmile_presets import get_preset
 
 
-DEFAULT_PRESET = "egemapsv02_lld_25ms_1ms"
+DEFAULT_PRESET = "egemapsv02_lld_25ms_10ms"
 
 
 def vao_extract(
@@ -19,17 +19,15 @@ def vao_extract(
     output_dir: str | Path | None = None,
     combined_csv: str | Path | None = None,
     preset: str = DEFAULT_PRESET,
-    frame_step_s: float = 0.001,
+    frame_step_s: float = 0.010,
     write_per_file_csvs: bool = False,
-    add_voiced_column: bool = True,
-    voiced_col: str = "voiced",
 ) -> pd.DataFrame:
     """One-call batch extraction for a folder of WAV files.
 
     This is the minimal user-facing API:
     - User supplies a directory of WAV files
     - User supplies their local openSMILE root folder (where `config/` lives)
-    - VAO runs the eGeMAPSv02 frame-level preset (25 ms window, 1 ms hop)
+    - VAO runs the eGeMAPSv02 frame-level preset (25 ms window, 10 ms hop)
     - Returns a single combined DataFrame and also writes `combined.csv`
 
     Args:
@@ -40,12 +38,9 @@ def vao_extract(
             Defaults to `<wav_dir>/vao_output`.
         combined_csv: Optional explicit path for the combined CSV.
             Defaults to `<output_dir>/combined.csv`.
-        preset: Preset name to use. Defaults to `egemapsv02_lld_25ms_1ms`.
+        preset: Preset name to use. Defaults to `egemapsv02_lld_25ms_10ms`.
         frame_step_s: Hop size in seconds (should match the wrapper config).
         write_per_file_csvs: If True, also write one CSV per recording.
-        add_voiced_column: If True, add a boolean voiced/unvoiced column derived
-            from `voicingFinalUnclipped`.
-        voiced_col: Name of the voiced column added when `add_voiced_column` is True.
 
     Returns:
         Combined DataFrame with a `recording` column.
@@ -69,7 +64,7 @@ def vao_extract(
 
     preset_obj = get_preset(preset, opensmile_home=opensmile_home_path)
 
-    combined = extract_features_folder(
+    return extract_features_folder(
         wav_dir_path,
         config_path=preset_obj.config_path,
         output_dir=output_dir_path,
@@ -80,18 +75,3 @@ def vao_extract(
         extra_args=preset_obj.extra_args,
         frame_step_s=frame_step_s,
     )
-
-    if add_voiced_column:
-        from .voicing import VoicingConfig, add_voicing_columns
-
-        combined = add_voicing_columns(
-            combined,
-            config=VoicingConfig(frame_step_s=frame_step_s),
-            voiced_col=voiced_col,
-        )
-
-        # Keep the on-disk combined CSV consistent with the returned DataFrame.
-        combined_path = Path(combined_csv).expanduser() if combined_csv is not None else (output_dir_path / "combined.csv")
-        combined.to_csv(combined_path, index=False, na_rep="NaN")
-
-    return combined

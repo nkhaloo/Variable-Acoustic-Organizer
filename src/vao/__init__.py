@@ -13,9 +13,6 @@ __all__ = [
 	"OpenSmileNotFoundError",
 	"OpenSmileRunError",
 	"vao_extract",
-	"VoicingConfig",
-	"voicing_mask",
-	"add_voicing_columns",
 	"get_presets",
 	"get_preset",
 	"list_presets",
@@ -33,9 +30,6 @@ if TYPE_CHECKING:
 	from .errors import OpenSmileRunError as OpenSmileRunError
 	from .errors import VAOError as VAOError
 	from .api import vao_extract as vao_extract
-	from .voicing import VoicingConfig as VoicingConfig
-	from .voicing import add_voicing_columns as add_voicing_columns
-	from .voicing import voicing_mask as voicing_mask
 	from .features import extract_features as extract_features
 	from .features import extract_features_folder as extract_features_folder
 	from .opensmile_presets import get_preset as get_preset
@@ -53,10 +47,6 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
 	"extract_features": ("vao.features", "extract_features"),
 	"extract_features_folder": ("vao.features", "extract_features_folder"),
 	"vao_extract": ("vao.api", "vao_extract"),
-	# voicing helpers
-	"VoicingConfig": ("vao.voicing", "VoicingConfig"),
-	"voicing_mask": ("vao.voicing", "voicing_mask"),
-	"add_voicing_columns": ("vao.voicing", "add_voicing_columns"),
 	# runner
 	"find_smileextract": ("vao.opensmile_runner", "find_smileextract"),
 	"run_smileextract": ("vao.opensmile_runner", "run_smileextract"),

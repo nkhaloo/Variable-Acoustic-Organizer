@@ -21,6 +21,10 @@ def vao_extract(
     preset: str = DEFAULT_PRESET,
     frame_step_s: float = 0.010,
     write_per_file_csvs: bool = False,
+    write_combined_csv: bool = False,
+    workers: int | None = None,
+    recursive: bool = False,
+    apply_gate: bool = True,
 ) -> pd.DataFrame:
     """One-call batch extraction for a folder of WAV files.
 
@@ -41,9 +45,12 @@ def vao_extract(
         preset: Preset name to use. Defaults to `egemapsv02_lld_25ms_10ms`.
         frame_step_s: Hop size in seconds (should match the wrapper config).
         write_per_file_csvs: If True, also write one CSV per recording.
+        workers: Number of parallel processes. Defaults to all available CPU cores.
+        apply_gate: If True, add a `segment_class` column (silence/obstruent/sonorant).
+            Requires the trained gate model to be present. Defaults to True.
 
     Returns:
-        Combined DataFrame with a `recording` column.
+        Combined DataFrame with a `recording` column and `segment_class` if apply_gate=True.
     """
 
     if opensmile_home is None and opensmile_default is None:
@@ -64,14 +71,23 @@ def vao_extract(
 
     preset_obj = get_preset(preset, opensmile_home=opensmile_home_path)
 
-    return extract_features_folder(
+    df = extract_features_folder(
         wav_dir_path,
         config_path=preset_obj.config_path,
         output_dir=output_dir_path,
         combined_csv=combined_csv,
         write_per_file_csvs=write_per_file_csvs,
+        write_combined_csv=write_combined_csv,
+        workers=workers,
+        recursive=recursive,
         opensmile_home=opensmile_home_path,
         output_option="-csvoutput",
         extra_args=preset_obj.extra_args,
         frame_step_s=frame_step_s,
     )
+
+    if apply_gate:
+        from .gate.classifier import apply_gate as _apply_gate
+        df = _apply_gate(df)
+
+    return df

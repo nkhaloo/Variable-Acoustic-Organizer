@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import os
 import tempfile
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Literal
 
@@ -171,13 +172,39 @@ def extract_features(
     return df
 
 
+def _extract_one(args: tuple) -> pd.DataFrame:
+    """Worker function for parallel extraction. Must be module-level for multiprocessing."""
+    (wav_path, config_path, per_file_csv, smileextract_path, opensmile_home,
+     input_option, output_option, extra_args, cwd, frame_step_s,
+     add_time_column, time_column, delimiter, recording_column, recording_value) = args
+
+    df = extract_features(
+        wav_path,
+        config_path=config_path,
+        output_csv=per_file_csv,
+        smileextract_path=smileextract_path,
+        opensmile_home=opensmile_home,
+        input_option=input_option,
+        output_option=output_option,
+        extra_args=extra_args,
+        cwd=cwd,
+        frame_step_s=frame_step_s,
+        add_time_column=add_time_column,
+        time_column=time_column,
+        delimiter=delimiter,
+    )
+    df.insert(0, recording_column, recording_value)
+    return df
+
+
 def extract_features_folder(
     wav_dir: str | os.PathLike[str],
     *,
     config_path: str | os.PathLike[str],
     output_dir: str | os.PathLike[str],
     combined_csv: str | os.PathLike[str] | None = None,
-    write_per_file_csvs: bool = True,
+    write_combined_csv: bool = False,
+    write_per_file_csvs: bool = False,
     smileextract_path: str | os.PathLike[str] | None = None,
     opensmile_home: str | os.PathLike[str] | None = None,
     input_option: str = "-I",
@@ -189,16 +216,22 @@ def extract_features_folder(
     time_column: str = "time_s",
     delimiter: str | Literal["auto"] = "auto",
     recording_column: str = "recording",
+    workers: int | None = None,
+    recursive: bool = False,
 ) -> pd.DataFrame:
     """Extract features for all WAV files in a folder.
 
-    By default, writes one CSV per recording into `output_dir` and also writes a
-    single combined CSV (defaults to `<output_dir>/combined.csv`).
+    Returns a combined DataFrame with one row per frame across all recordings.
+    Nothing is written to disk by default — pass `write_combined_csv=True` or
+    `write_per_file_csvs=True` to save output.
 
-    If `write_per_file_csvs` is False, only the combined CSV is written.
-
-    The returned DataFrame is the concatenation of all recordings and includes
-    a `recording_column` so you can group rows by source file.
+    Args:
+        workers: Number of parallel processes. Defaults to all available CPU cores.
+            Set to 1 to disable parallelism (useful for debugging).
+        write_combined_csv: If True, write a combined CSV to `output_dir/combined.csv`
+            (or `combined_csv` if provided).
+        write_per_file_csvs: If True, write one CSV per recording into `output_dir`.
+        recursive: If True, search for WAV files in all subdirectories.
     """
 
     wav_dir = Path(wav_dir).expanduser()
@@ -208,36 +241,62 @@ def extract_features_folder(
     out_dir = Path(output_dir).expanduser()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    wav_paths = sorted([p for p in wav_dir.iterdir() if p.is_file() and p.suffix.lower() == ".wav"])
+    if recursive:
+        wav_paths = sorted([p for p in wav_dir.rglob("*.wav") if p.is_file()])
+    else:
+        wav_paths = sorted([p for p in wav_dir.iterdir() if p.is_file() and p.suffix.lower() == ".wav"])
     if not wav_paths:
         raise FileNotFoundError(f"No .wav files found in: {wav_dir}")
 
-    frames: list[pd.DataFrame] = []
+    n_workers = workers if workers is not None else (os.cpu_count() or 1)
 
-    for wav_path in wav_paths:
-        per_file_csv = (out_dir / f"{wav_path.stem}.csv") if write_per_file_csvs else None
-        df = extract_features(
+    def _per_file_csv(wav_path: Path) -> Path | None:
+        if not write_per_file_csvs:
+            return None
+        if recursive:
+            # Flatten subdirectory structure into filename to avoid collisions.
+            # e.g. TRAIN/DR1/FCJF0/SA1.WAV.wav → TRAIN_DR1_FCJF0_SA1.WAV.csv
+            rel = wav_path.relative_to(wav_dir)
+            flat = "_".join(rel.with_suffix("").parts) + ".csv"
+            return out_dir / flat
+        return out_dir / f"{wav_path.stem}.csv"
+
+    def _recording_value(wav_path: Path) -> str:
+        if recursive:
+            return str(wav_path.relative_to(wav_dir))
+        return wav_path.name
+
+    args_list = [
+        (
             wav_path,
-            config_path=config_path,
-            output_csv=per_file_csv,
-            smileextract_path=smileextract_path,
-            opensmile_home=opensmile_home,
-            input_option=input_option,
-            output_option=output_option,
-            extra_args=extra_args,
-            cwd=cwd,
-            frame_step_s=frame_step_s,
-            add_time_column=add_time_column,
-            time_column=time_column,
-            delimiter=delimiter,
+            Path(config_path),
+            _per_file_csv(wav_path),
+            smileextract_path,
+            opensmile_home,
+            input_option,
+            output_option,
+            extra_args,
+            cwd,
+            frame_step_s,
+            add_time_column,
+            time_column,
+            delimiter,
+            recording_column,
+            _recording_value(wav_path),
         )
+        for wav_path in wav_paths
+    ]
 
-        df.insert(0, recording_column, wav_path.name)
-        frames.append(df)
+    if n_workers == 1:
+        frames = [_extract_one(args) for args in args_list]
+    else:
+        with ProcessPoolExecutor(max_workers=n_workers) as executor:
+            frames = list(executor.map(_extract_one, args_list))
 
     combined = pd.concat(frames, ignore_index=True)
 
-    combined_path = Path(combined_csv).expanduser() if combined_csv is not None else (out_dir / "combined.csv")
-    combined.to_csv(combined_path, index=False, na_rep="NaN")
+    if write_combined_csv or combined_csv is not None:
+        combined_path = Path(combined_csv).expanduser() if combined_csv is not None else (out_dir / "combined.csv")
+        combined.to_csv(combined_path, index=False, na_rep="NaN")
 
     return combined

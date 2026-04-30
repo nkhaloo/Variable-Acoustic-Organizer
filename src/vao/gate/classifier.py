@@ -26,7 +26,7 @@ class GateClassifier:
         missing = [f for f in self.features if f not in df.columns]
         if missing:
             raise KeyError(f"Gate classifier expects columns not found in DataFrame: {missing}")
-        X = df[self.features].to_numpy(dtype=float)
+        X = df[self.features].fillna(0).to_numpy(dtype=float)
         return self._model.predict(X)
 
 

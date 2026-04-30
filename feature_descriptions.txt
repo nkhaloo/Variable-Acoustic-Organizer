@@ -1,0 +1,176 @@
+VAO Acoustic Feature Descriptions
+===================================
+All features are smoothed (sma3 = 3-frame moving average).
+Features marked (nz) are only defined for voiced frames.
+
+--- ENERGY & LOUDNESS ---
+
+Loudness_sma3
+    Perceptual loudness based on the auditory filter bank. Near zero in silence,
+    higher during speech.
+
+--- SPECTRAL BALANCE ---
+
+alphaRatio_sma3
+    Ratio of energy in high (1-5 kHz) vs low (50-1000 Hz) frequency bands (dB).
+    Low for sonorants (energy concentrated low), higher for noise/obstruents.
+
+hammarbergIndex_sma3
+    Ratio of energy in the 0-2 kHz band to 2-5 kHz band. Reflects dominance
+    of the voice source harmonics. High for voiced speech, low for unvoiced.
+
+slope0-500_sma3
+    Linear regression slope of the spectrum between 0-500 Hz.
+    Captures the tilt of the low-frequency spectral region.
+
+slope500-1500_sma3
+    Linear regression slope of the spectrum between 500-1500 Hz.
+    Captures the mid-frequency spectral tilt.
+
+spectralFlux_sma3
+    How fast the spectrum is changing frame-to-frame. High during transitions
+    and noisy consonants, lower during steady-state vowels.
+
+--- CEPSTRAL (MFCC) ---
+
+mfcc1_sma3
+    First MFCC coefficient. Strongly correlated with overall spectral energy
+    and the general shape of the vocal tract transfer function.
+
+mfcc2_sma3
+    Second MFCC. Captures the main spectral tilt (high vs low frequency balance).
+
+mfcc3_sma3
+    Third MFCC. Encodes mid-frequency spectral shape information.
+
+mfcc4_sma3
+    Fourth MFCC. Encodes finer spectral shape details.
+
+--- F0 & VOICING (voiced frames only) ---
+
+F0semitoneFrom27.5Hz_sma3nz  [sonorant only]
+    Fundamental frequency (pitch) in semitones relative to 27.5 Hz (A0).
+    NaN'd for obstruents and silence.
+
+voicingFinalUnclipped
+    Viterbi voicing probability (0-1) from the pitch tracker. Represents the
+    model's confidence that the frame is voiced. Not smoothed.
+
+--- VOICE QUALITY (voiced frames only) ---
+
+jitterLocal_sma3nz  [sonorant only]
+    Cycle-to-cycle variation in pitch period length, as a percentage.
+    Measures pitch irregularity. Higher in pathological or creaky voice.
+    NaN'd for obstruents and silence.
+
+shimmerLocaldB_sma3nz  [sonorant only]
+    Cycle-to-cycle variation in amplitude (dB). Measures amplitude irregularity.
+    Higher in breathy or rough voice quality. NaN'd for obstruents and silence.
+
+HNRdBACF_sma3nz
+    Harmonics-to-Noise Ratio in dB. Measures how much of the signal is periodic
+    vs noise. High for clean sonorants, low for obstruents and noise.
+
+logRelF0-H1-H2_sma3nz  [sonorant only]
+    Log ratio of the amplitude of the first harmonic (H1) to the second (H2).
+    Correlates with breathiness — higher values indicate breathier voice.
+    NaN'd for obstruents and silence.
+
+logRelF0-H1-A3_sma3nz  [sonorant only]
+    Log ratio of H1 amplitude to the amplitude of the third formant peak (A3).
+    Another voice quality measure related to glottal open quotient.
+    NaN'd for obstruents and silence.
+
+--- FORMANTS (sonorant only) ---
+
+F1frequency_sma3nz
+    First formant frequency (Hz). Correlates with vowel height — low vowels
+    (e.g. /a/) have high F1, high vowels (e.g. /i/) have low F1.
+
+F1bandwidth_sma3nz
+    Bandwidth of F1. Narrower bandwidths indicate clearer resonances.
+
+F1amplitudeLogRelF0_sma3nz
+    Amplitude of F1 relative to F0 (log scale). Reflects the strength of the
+    first formant resonance.
+
+F2frequency_sma3nz
+    Second formant frequency (Hz). Correlates with vowel backness — front vowels
+    (e.g. /i/) have high F2, back vowels (e.g. /u/) have low F2.
+
+F2bandwidth_sma3nz
+    Bandwidth of F2.
+
+F2amplitudeLogRelF0_sma3nz
+    Amplitude of F2 relative to F0 (log scale).
+
+F3frequency_sma3nz
+    Third formant frequency (Hz). Relates to lip rounding and individual
+    speaker characteristics. Also important for /r/ sounds.
+
+F3bandwidth_sma3nz
+    Bandwidth of F3.
+
+F3amplitudeLogRelF0_sma3nz
+    Amplitude of F3 relative to F0 (log scale).
+
+F4frequency_sma3nz
+    Fourth formant frequency (Hz). Less commonly used but captures higher
+    vocal tract resonances. Speaker-characteristic.
+
+F4bandwidth_sma3nz
+    Bandwidth of F4.
+
+F5frequency_sma3nz
+    Fifth formant frequency (Hz). Rarely used in phonetic analysis but
+    included for completeness.
+
+F5bandwidth_sma3nz
+    Bandwidth of F5.
+
+--- SPECTRAL SHAPE (ComParE-derived) ---
+
+pcm_fftMag_spectralRollOff25.0_sma
+    Frequency below which 25% of the total spectral energy is contained.
+
+pcm_fftMag_spectralRollOff50.0_sma
+    Frequency below which 50% of the total spectral energy is contained
+    (spectral median).
+
+pcm_fftMag_spectralRollOff75.0_sma
+    Frequency below which 75% of the total spectral energy is contained.
+
+pcm_fftMag_spectralRollOff90.0_sma
+    Frequency below which 90% of the total spectral energy is contained.
+
+pcm_fftMag_spectralCentroid_sma
+    Center of mass of the spectrum (weighted mean frequency). High for
+    fricatives and high-frequency sounds, lower for voiced speech.
+
+pcm_fftMag_spectralEntropy_sma
+    Entropy of the normalized spectrum. Low for periodic sounds with clear
+    harmonics (sonorants), high for noise-like sounds (obstruents).
+
+pcm_fftMag_spectralVariance_sma
+    Variance of the spectral distribution around the centroid. Measures
+    how spread out the energy is across frequencies.
+
+pcm_fftMag_spectralSkewness_sma
+    Skewness of the spectral distribution. Positive = energy concentrated
+    at lower frequencies, negative = concentrated at higher frequencies.
+
+pcm_fftMag_spectralKurtosis_sma
+    Kurtosis of the spectral distribution. High kurtosis indicates a
+    peaked spectrum (narrow resonances); low indicates a flat spectrum.
+
+pcm_fftMag_spectralSlope_sma
+    Overall linear regression slope of the FFT magnitude spectrum. Steep
+    negative slope for voiced speech, flatter for noise and fricatives.
+
+pcm_fftMag_psySharpness_sma
+    Psychoacoustic sharpness — a perceptual measure of how "sharp" or
+    high-frequency dominated the sound is. High for fricatives, low for vowels.
+
+pcm_fftMag_spectralHarmonicity_sma
+    Degree to which the spectrum follows a harmonic structure. High for
+    periodic voiced sounds, low for aperiodic noise.

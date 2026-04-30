@@ -1,7 +1,7 @@
-class,precision,recall,f1-score,support
-obstruent,0.61,0.68,0.65,37787
-silence,0.49,0.60,0.54,13154
-sonorant,0.95,0.92,0.93,228867
-accuracy,,,0.87,279808
-macro avg,0.69,0.73,0.71,279808
-weighted avg,0.88,0.87,0.88,279808
+,precision,recall,f1-score,support
+obstruent,0.765,0.81,0.787,37599.0
+silence,0.626,0.766,0.689,13077.0
+sonorant,0.974,0.952,0.963,227798.0
+accuracy,0.924,0.924,0.924,0.924
+macro avg,0.788,0.843,0.813,278474.0
+weighted avg,0.93,0.924,0.926,278474.0

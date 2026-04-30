@@ -66,6 +66,7 @@ def vao_extract(
     min_silence_ms: int = 100,
     mask_features: bool = False,
     normalize: bool = False,
+    frame_level: bool = True,
 ) -> pd.DataFrame:
     """One-call batch extraction for a folder of WAV files.
 
@@ -102,6 +103,9 @@ def vao_extract(
             Requires apply_gate=True. Defaults to False.
         normalize: If True, apply per-recording z-score normalization to all numeric
             acoustic feature columns (excludes time, recording, and segment_class).
+        frame_level: If True (default), return one row per 10ms frame. If False,
+            aggregate to one row per recording using mean and std of each feature —
+            the traditional OpenSMILE functional approach.
             Useful before PCA or distance-based models. Defaults to False.
 
     Returns:
@@ -199,5 +203,14 @@ def vao_extract(
             df.groupby("recording")[feature_cols]
             .transform(lambda x: (x - x.mean()) / x.std())
         )
+
+    if not frame_level:
+        meta_cols = {"recording", "segment_class", "time_s", "frameTime",
+                     "frame_time", "timestamp", "name"}
+        feature_cols = [c for c in df.columns
+                        if c not in meta_cols and pd.api.types.is_numeric_dtype(df[c])]
+        mean_df = df.groupby("recording")[feature_cols].mean().add_suffix("_mean")
+        std_df = df.groupby("recording")[feature_cols].std().add_suffix("_std")
+        df = pd.concat([mean_df, std_df], axis=1).reset_index()
 
     return df

@@ -20,7 +20,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import classification_report
 from sklearn.pipeline import Pipeline
 
@@ -33,13 +33,35 @@ except ImportError:
 
 SAMPLE_RATE = 16_000
 FEATURES = [
-    "HNRdBACF_sma3nz",
+    # Energy & loudness
+    "Loudness_sma3", "Loudness_sma3_de",
+    # Spectral balance
+    "alphaRatio_sma3", "alphaRatio_sma3_de",
+    "hammarbergIndex_sma3", "hammarbergIndex_sma3_de",
+    "slope0-500_sma3", "slope0-500_sma3_de",
+    "slope500-1500_sma3", "slope500-1500_sma3_de",
+    "spectralFlux_sma3", "spectralFlux_sma3_de",
+    # MFCCs
+    "mfcc1_sma3", "mfcc1_sma3_de",
+    "mfcc2_sma3", "mfcc2_sma3_de",
+    "mfcc3_sma3", "mfcc3_sma3_de",
+    "mfcc4_sma3", "mfcc4_sma3_de",
+    # Voicing & harmonicity
+    "HNRdBACF_sma3nz", "HNRdBACF_sma3nz_de",
     "voicingFinalUnclipped",
-    "pcm_fftMag_spectralEntropy_sma",
-    "pcm_fftMag_spectralHarmonicity_sma",
-    "Loudness_sma3",
-    "spectralFlux_sma3",
-    "alphaRatio_sma3",
+    # Spectral shape
+    "pcm_fftMag_spectralRollOff25.0_sma", "pcm_fftMag_spectralRollOff25.0_sma_de",
+    "pcm_fftMag_spectralRollOff50.0_sma", "pcm_fftMag_spectralRollOff50.0_sma_de",
+    "pcm_fftMag_spectralRollOff75.0_sma", "pcm_fftMag_spectralRollOff75.0_sma_de",
+    "pcm_fftMag_spectralRollOff90.0_sma", "pcm_fftMag_spectralRollOff90.0_sma_de",
+    "pcm_fftMag_spectralCentroid_sma", "pcm_fftMag_spectralCentroid_sma_de",
+    "pcm_fftMag_spectralEntropy_sma", "pcm_fftMag_spectralEntropy_sma_de",
+    "pcm_fftMag_spectralVariance_sma", "pcm_fftMag_spectralVariance_sma_de",
+    "pcm_fftMag_spectralSkewness_sma", "pcm_fftMag_spectralSkewness_sma_de",
+    "pcm_fftMag_spectralKurtosis_sma", "pcm_fftMag_spectralKurtosis_sma_de",
+    "pcm_fftMag_spectralSlope_sma", "pcm_fftMag_spectralSlope_sma_de",
+    "pcm_fftMag_psySharpness_sma", "pcm_fftMag_psySharpness_sma_de",
+    "pcm_fftMag_spectralHarmonicity_sma", "pcm_fftMag_spectralHarmonicity_sma_de",
 ]
 
 TIME_COLS = {"time_s", "frameTime", "frame_time", "timestamp", "time", "Time"}
@@ -68,16 +90,19 @@ def recording_to_phn(recording: str, timit_data_root: Path, split: str) -> Path 
     return phn_path if phn_path.is_file() else None
 
 
-def label_frames(time_s: np.ndarray, segments: list[tuple[float, float, str]]) -> list[str | None]:
-    """Assign a class label to each frame based on its timestamp."""
-    labels = []
-    seg_idx = 0
-    for t in time_s:
-        while seg_idx < len(segments) - 1 and t >= segments[seg_idx][1]:
-            seg_idx += 1
-        start, end, phoneme = segments[seg_idx]
-        labels.append(timit_label(phoneme) if start <= t < end else None)
-    return labels
+def label_frames(time_s: np.ndarray, segments: list[tuple[float, float, str]]) -> np.ndarray:
+    """Assign a class label to each frame based on its timestamp — vectorized."""
+    starts = np.array([s[0] for s in segments])
+    ends = np.array([s[1] for s in segments])
+    phonemes = np.array([s[2] for s in segments])
+
+    # For each frame time, find which segment it falls in via binary search
+    idx = np.searchsorted(ends, time_s, side="left")
+    idx = np.clip(idx, 0, len(segments) - 1)
+
+    in_segment = (time_s >= starts[idx]) & (time_s < ends[idx])
+    raw = np.where(in_segment, phonemes[idx], None)
+    return np.array([timit_label(p) if p is not None else None for p in raw])
 
 
 def build_dataset(timit_data_root: Path, csv_path: Path, split: str) -> pd.DataFrame:
@@ -137,17 +162,13 @@ def train(
     print(f"Train: {len(X_train):,} frames — {pd.Series(y_train).value_counts().to_dict()}")
     print(f"Test:  {len(X_test):,} frames — {pd.Series(y_test).value_counts().to_dict()}")
 
-    model = Pipeline([
-        ("clf", GradientBoostingClassifier(n_estimators=100, max_depth=4, learning_rate=0.1)),
-    ])
-
-    # GradientBoostingClassifier has no class_weight parameter, so we compute
-    # sample weights manually. Each frame is weighted inversely proportional to
-    # its class frequency — obstruent and silence frames get upweighted so the
-    # model can't just default to predicting sonorant for everything.
+    # square root of inverse frequency dampens the correction — less aggressive than full balance
     class_counts = pd.Series(y_train).value_counts()
-    # square root dampens the correction — less aggressive than full inverse frequency
     sample_weight = np.array([1.0 / np.sqrt(class_counts[label]) for label in y_train])
+
+    model = Pipeline([
+        ("clf", HistGradientBoostingClassifier(max_iter=100, max_depth=4)),
+    ])
 
     print("\nTraining...")
     model.fit(X_train, y_train, clf__sample_weight=sample_weight)

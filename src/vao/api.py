@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from .audio_preprocess import preprocess_folder
 from .features import extract_features_folder
 from .opensmile_presets import get_preset
 
@@ -60,6 +61,7 @@ def vao_extract(
     write_combined_csv: bool = False,
     workers: int | None = None,
     recursive: bool = False,
+    preprocess: bool = True,
     apply_gate: bool = True,
     smooth_gate: bool = False,
     min_segment_ms: int = 30,
@@ -88,6 +90,9 @@ def vao_extract(
         frame_step_s: Hop size in seconds (should match the wrapper config).
         write_per_file_csvs: If True, also write one CSV per recording.
         workers: Number of parallel processes. Defaults to all available CPU cores.
+        preprocess: If True, convert all audio files to 16 kHz mono WAV before
+            extraction. Preprocessed files are written to `<output_dir>/preprocessed`.
+            Requires ffmpeg on PATH.
         apply_gate: If True, add a `segment_class` column (silence/obstruent/sonorant).
             Requires the trained gate model to be present. Defaults to True.
         smooth_gate: If True, apply temporal smoothing to segment_class predictions —
@@ -127,6 +132,11 @@ def vao_extract(
         output_dir_path = wav_dir_path / "vao_output"
     else:
         output_dir_path = Path(output_dir).expanduser()
+
+    if preprocess:
+        preprocess_dir = output_dir_path / "preprocessed"
+        preprocess_folder(wav_dir_path, preprocess_dir, recursive=recursive)
+        wav_dir_path = preprocess_dir
 
     preset_obj = get_preset(preset, opensmile_home=opensmile_home_path)
 

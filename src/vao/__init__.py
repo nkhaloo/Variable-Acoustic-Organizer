@@ -20,6 +20,8 @@ __all__ = [
 	"extract_features_folder",
 	"find_smileextract",
 	"run_smileextract",
+	"preprocess_file",
+	"preprocess_folder",
 ]
 
 __version__ = "0.1.0"
@@ -30,6 +32,8 @@ if TYPE_CHECKING:
 	from .errors import OpenSmileRunError as OpenSmileRunError
 	from .errors import VAOError as VAOError
 	from .api import vao_extract as vao_extract
+	from .audio_preprocess import preprocess_file as preprocess_file
+	from .audio_preprocess import preprocess_folder as preprocess_folder
 	from .features import extract_features as extract_features
 	from .features import extract_features_folder as extract_features_folder
 	from .opensmile_presets import get_preset as get_preset
@@ -43,6 +47,9 @@ _LAZY_EXPORTS: dict[str, tuple[str, str]] = {
 	"VAOError": ("vao.errors", "VAOError"),
 	"OpenSmileNotFoundError": ("vao.errors", "OpenSmileNotFoundError"),
 	"OpenSmileRunError": ("vao.errors", "OpenSmileRunError"),
+	# preprocessing
+	"preprocess_file": ("vao.audio_preprocess", "preprocess_file"),
+	"preprocess_folder": ("vao.audio_preprocess", "preprocess_folder"),
 	# features
 	"extract_features": ("vao.features", "extract_features"),
 	"extract_features_folder": ("vao.features", "extract_features_folder"),

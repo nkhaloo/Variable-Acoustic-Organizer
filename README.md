@@ -13,8 +13,5 @@ git clone https://github.com/nkhaloo/Variable-Acoustic-Organizer.git
 
 cd Variable-Acoustic-Organizer 
 
-pip install -e
-
-### to update 
-python -m pip install --upgrade "vao @ git+https://github.com/nkhaloo/Variable-Acoustic-Organize.git@main"
+pip install -e.
 

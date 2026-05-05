@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import tempfile
 from pathlib import Path
 
 import pandas as pd
@@ -53,12 +54,8 @@ def vao_extract(
     *,
     opensmile_home: str | Path | None = None,
     opensmile_default: str | Path | None = None,
-    output_dir: str | Path | None = None,
-    combined_csv: str | Path | None = None,
     preset: str = DEFAULT_PRESET,
     frame_step_s: float = 0.010,
-    write_per_file_csvs: bool = False,
-    write_combined_csv: bool = False,
     workers: int | None = None,
     recursive: bool = False,
     preprocess: bool = True,
@@ -76,22 +73,17 @@ def vao_extract(
     - User supplies a directory of WAV files
     - User supplies their local openSMILE root folder (where `config/` lives)
     - VAO runs the eGeMAPSv02 frame-level preset (25 ms window, 10 ms hop)
-    - Returns a single combined DataFrame and also writes `combined.csv`
+    - Returns a single combined DataFrame; save it yourself with df.to_csv(...)
 
     Args:
         wav_dir: Folder containing `.wav` files.
         opensmile_home: Path to the openSMILE repo/install root.
         opensmile_default: Alias for `opensmile_home` (kept for user ergonomics).
-        output_dir: Folder to write per-file CSVs + combined CSV.
-            Defaults to `<wav_dir>/vao_output`.
-        combined_csv: Optional explicit path for the combined CSV.
-            Defaults to `<output_dir>/combined.csv`.
         preset: Preset name to use. Defaults to `egemapsv02_lld_25ms_10ms`.
         frame_step_s: Hop size in seconds (should match the wrapper config).
-        write_per_file_csvs: If True, also write one CSV per recording.
         workers: Number of parallel processes. Defaults to all available CPU cores.
         preprocess: If True, convert all audio files to 16 kHz mono WAV before
-            extraction. Preprocessed files are written to `<output_dir>/preprocessed`.
+            extraction. Preprocessed files are written to `<wav_dir>/vao_output/preprocessed`.
             Requires ffmpeg on PATH.
         apply_gate: If True, add a `segment_class` column (silence/obstruent/sonorant).
             Requires the trained gate model to be present. Defaults to True.
@@ -128,32 +120,24 @@ def vao_extract(
     wav_dir_path = Path(wav_dir).expanduser()
     opensmile_home_path = Path(resolved_opensmile_home).expanduser()
 
-    if output_dir is None:
-        output_dir_path = wav_dir_path / "vao_output"
-    else:
-        output_dir_path = Path(output_dir).expanduser()
-
-    if preprocess:
-        preprocess_dir = output_dir_path / "preprocessed"
-        preprocess_folder(wav_dir_path, preprocess_dir, recursive=recursive)
-        wav_dir_path = preprocess_dir
-
     preset_obj = get_preset(preset, opensmile_home=opensmile_home_path)
 
-    df = extract_features_folder(
-        wav_dir_path,
-        config_path=preset_obj.config_path,
-        output_dir=output_dir_path,
-        combined_csv=combined_csv,
-        write_per_file_csvs=write_per_file_csvs,
-        write_combined_csv=write_combined_csv,
-        workers=workers,
-        recursive=recursive,
-        opensmile_home=opensmile_home_path,
-        output_option="-csvoutput",
-        extra_args=preset_obj.extra_args,
-        frame_step_s=frame_step_s,
-    )
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        if preprocess:
+            preprocess_folder(wav_dir_path, tmp_dir, recursive=recursive)
+            wav_dir_path = Path(tmp_dir)
+
+        df = extract_features_folder(
+            wav_dir_path,
+            config_path=preset_obj.config_path,
+            output_dir=Path(tmp_dir),
+            workers=workers,
+            recursive=recursive,
+            opensmile_home=opensmile_home_path,
+            output_option="-csvoutput",
+            extra_args=preset_obj.extra_args,
+            frame_step_s=frame_step_s,
+        )
 
     if apply_gate:
         from .gate.classifier import apply_gate as _apply_gate

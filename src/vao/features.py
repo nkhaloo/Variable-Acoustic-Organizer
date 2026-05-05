@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 import os
 import tempfile
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Literal
 
@@ -202,9 +202,6 @@ def extract_features_folder(
     *,
     config_path: str | os.PathLike[str],
     output_dir: str | os.PathLike[str],
-    combined_csv: str | os.PathLike[str] | None = None,
-    write_combined_csv: bool = False,
-    write_per_file_csvs: bool = False,
     smileextract_path: str | os.PathLike[str] | None = None,
     opensmile_home: str | os.PathLike[str] | None = None,
     input_option: str = "-I",
@@ -222,15 +219,10 @@ def extract_features_folder(
     """Extract features for all WAV files in a folder.
 
     Returns a combined DataFrame with one row per frame across all recordings.
-    Nothing is written to disk by default — pass `write_combined_csv=True` or
-    `write_per_file_csvs=True` to save output.
 
     Args:
         workers: Number of parallel processes. Defaults to all available CPU cores.
             Set to 1 to disable parallelism (useful for debugging).
-        write_combined_csv: If True, write a combined CSV to `output_dir/combined.csv`
-            (or `combined_csv` if provided).
-        write_per_file_csvs: If True, write one CSV per recording into `output_dir`.
         recursive: If True, search for WAV files in all subdirectories.
     """
 
@@ -250,17 +242,6 @@ def extract_features_folder(
 
     n_workers = workers if workers is not None else (os.cpu_count() or 1)
 
-    def _per_file_csv(wav_path: Path) -> Path | None:
-        if not write_per_file_csvs:
-            return None
-        if recursive:
-            # Flatten subdirectory structure into filename to avoid collisions.
-            # e.g. TRAIN/DR1/FCJF0/SA1.WAV.wav → TRAIN_DR1_FCJF0_SA1.WAV.csv
-            rel = wav_path.relative_to(wav_dir)
-            flat = "_".join(rel.with_suffix("").parts) + ".csv"
-            return out_dir / flat
-        return out_dir / f"{wav_path.stem}.csv"
-
     def _recording_value(wav_path: Path) -> str:
         if recursive:
             return str(wav_path.relative_to(wav_dir))
@@ -270,7 +251,7 @@ def extract_features_folder(
         (
             wav_path,
             Path(config_path),
-            _per_file_csv(wav_path),
+            None,
             smileextract_path,
             opensmile_home,
             input_option,
@@ -290,13 +271,9 @@ def extract_features_folder(
     if n_workers == 1:
         frames = [_extract_one(args) for args in args_list]
     else:
-        with ProcessPoolExecutor(max_workers=n_workers) as executor:
+        with ThreadPoolExecutor(max_workers=n_workers) as executor:
             frames = list(executor.map(_extract_one, args_list))
 
     combined = pd.concat(frames, ignore_index=True)
-
-    if write_combined_csv or combined_csv is not None:
-        combined_path = Path(combined_csv).expanduser() if combined_csv is not None else (out_dir / "combined.csv")
-        combined.to_csv(combined_path, index=False, na_rep="NaN")
 
     return combined

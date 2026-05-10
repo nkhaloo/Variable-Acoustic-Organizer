@@ -21,5 +21,9 @@ with tempfile.TemporaryDirectory(prefix="vao_test_") as tmp:
 
     df = vao_extract(tmp_dir, opensmile_default=OPENSMILE_HOME, apply_gate=True, normalize=False)
 
+# recording column is the WAV stem (e.g. "T_0000000000.wav"); strip extension to match flac_file_name
+df["flac_file_name"] = df["recording"].str.rsplit(".", n=1).str[0]
+df = df.merge(sample.drop(columns=["audio_exists"], errors="ignore"), on="flac_file_name", how="left")
+
 df.to_csv(OUT_CSV, index=False, na_rep="NaN")
 print(f"Saved {len(df):,} frames to {OUT_CSV}")

@@ -1,19 +1,9 @@
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-dist/
-build/
-.venv/
-venv/
-
 # Generated outputs — large files, not committed
 output/
 deepfake_exp/output/
 
 # Test artifacts
 *.htk
-*.csv
 
 # OS
 .DS_Store
@@ -21,6 +11,11 @@ deepfake_exp/output/
 # Python cache
 __pycache__/
 *.py[cod]
+
+# Build / packaging
+*.egg-info/
+dist/
+build/
 
 # Local virtual environments
 vao/

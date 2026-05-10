@@ -7,7 +7,7 @@ import pandas as pd
 from vao import vao_extract
 
 METADATA = Path(__file__).parent / "output" / "asvspoof5_track1_metadata.parquet"
-OPENSMILE_HOME = Path("/Users/noahkhaloo/Desktop/opensmile")
+OPENSMILE_HOME = Path("/home/nkhaloo/Desktop/opensmile")
 OUT_CSV = Path(__file__).parent / "output_test.csv"
 
 meta = pd.read_parquet(METADATA)

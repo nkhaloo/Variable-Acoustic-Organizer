@@ -1,8 +1,7 @@
-#!/usr/bin/env python3
 """Extract VAO frame-level acoustic features for ASVspoof5 Track 1.
 
 Reads the metadata Parquet produced by extract_metadata.py, processes audio
-files one at a time (FLAC → 16 kHz WAV → openSMILE → gate), and writes
+files in chunks using vao_extract (no gating, no normalization), and writes
 chunked Parquet output.  Resumable: existing chunks are skipped unless
 --overwrite is set.
 
@@ -26,24 +25,7 @@ import traceback
 from pathlib import Path
 
 import pandas as pd
-
-from vao.audio_preprocess import preprocess_file
-from vao.features import extract_features
-from vao.opensmile_presets import get_preset
-
-METADATA_COLS = [
-    "split",
-    "speaker_id",
-    "flac_file_name",
-    "audio_path",
-    "gender",
-    "codec",
-    "codec_q",
-    "codec_seed",
-    "attack_tag",
-    "attack_label",
-    "key",
-]
+from vao import vao_extract
 
 
 def parse_args() -> argparse.Namespace:
@@ -51,54 +33,14 @@ def parse_args() -> argparse.Namespace:
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument(
-        "--metadata",
-        required=True,
-        help="Path to asvspoof5_track1_metadata.parquet",
-    )
-    p.add_argument(
-        "--output-dir",
-        required=True,
-        help="Directory to write output Parquet chunks",
-    )
-    p.add_argument(
-        "--opensmile-home",
-        required=True,
-        help="Path to openSMILE root (where config/ lives)",
-    )
-    p.add_argument(
-        "--split",
-        default="all",
-        choices=["train", "dev", "eval", "all"],
-        help="Which split to process (default: all)",
-    )
-    p.add_argument(
-        "--max-files",
-        type=int,
-        default=None,
-        help="Process at most N files total; useful for debugging",
-    )
-    p.add_argument(
-        "--chunk-size",
-        type=int,
-        default=1000,
-        help="Number of utterances per output Parquet file (default: 1000)",
-    )
-    p.add_argument(
-        "--overwrite",
-        action="store_true",
-        help="Overwrite existing chunk files instead of skipping them",
-    )
-    p.add_argument(
-        "--preset",
-        default="egemapsv02_lld_25ms_10ms",
-        help="VAO openSMILE preset name (default: egemapsv02_lld_25ms_10ms)",
-    )
-    p.add_argument(
-        "--no-gate",
-        action="store_true",
-        help="Skip segment_class (obstruent/sonorant/silence) labeling",
-    )
+    p.add_argument("--metadata", required=True, help="Path to asvspoof5_track1_metadata.parquet")
+    p.add_argument("--output-dir", required=True, help="Directory to write output Parquet chunks")
+    p.add_argument("--opensmile-home", required=True, help="Path to openSMILE root (where config/ lives)")
+    p.add_argument("--split", default="all", choices=["train", "dev", "eval", "all"])
+    p.add_argument("--max-files", type=int, default=None, help="Cap number of files (for debugging)")
+    p.add_argument("--chunk-size", type=int, default=1000, help="Utterances per output Parquet file")
+    p.add_argument("--overwrite", action="store_true", help="Overwrite existing chunk files")
+    p.add_argument("--csv", action="store_true", help="Save as CSV instead of Parquet (useful for debugging)")
     return p.parse_args()
 
 
@@ -120,42 +62,9 @@ def setup_logging(output_dir: Path) -> logging.Logger:
     return log
 
 
-def process_one(
-    row: pd.Series,
-    preset_obj,
-    opensmile_home: Path,
-    tmp_dir: Path,
-    apply_gate: bool,
-) -> pd.DataFrame:
-    """FLAC → WAV → features → optional gate → annotated DataFrame."""
-    audio_path = Path(row["audio_path"])
-
-    wav_path = preprocess_file(audio_path, tmp_dir)
-
-    df = extract_features(
-        wav_path,
-        config_path=preset_obj.config_path,
-        opensmile_home=opensmile_home,
-        output_option="-csvoutput",
-        extra_args=preset_obj.extra_args,
-        frame_step_s=0.010,
-    )
-
-    if apply_gate:
-        from vao.gate.classifier import apply_gate as _apply_gate
-        df = _apply_gate(df)
-
-    df.insert(0, "frame_idx", range(len(df)))
-
-    # Prepend metadata columns in order (insert at 0 reverses, so iterate reversed).
-    for col in reversed(METADATA_COLS):
-        df.insert(0, col, row[col])
-
-    return df
-
-
-def chunk_filename(split: str, chunk_idx: int) -> str:
-    return f"{split}_part_{chunk_idx:03d}.parquet"
+def chunk_filename(split: str, chunk_idx: int, csv: bool = False) -> str:
+    ext = "csv" if csv else "parquet"
+    return f"{split}_part_{chunk_idx:03d}.{ext}"
 
 
 def append_failures(path: Path, rows: list[dict]) -> None:
@@ -189,7 +98,6 @@ def main() -> None:
     if args.split != "all":
         metadata = metadata[metadata["split"] == args.split].copy()
 
-    # Drop rows where audio is confirmed missing.
     if "audio_exists" in metadata.columns:
         n_missing = (~metadata["audio_exists"].astype(bool)).sum()
         if n_missing:
@@ -203,86 +111,69 @@ def main() -> None:
     log.info("Total utterances to process: %d", len(metadata))
 
     opensmile_home = Path(args.opensmile_home)
-    preset_obj = get_preset(args.preset, opensmile_home=opensmile_home)
-    apply_gate = not args.no_gate
+    meta_cols = [c for c in metadata.columns if c != "audio_exists"]
 
-    splits_to_process = sorted(metadata["split"].unique())
-
-    for split in splits_to_process:
+    for split in sorted(metadata["split"].unique()):
         split_df = metadata[metadata["split"] == split].reset_index(drop=True)
         n = len(split_df)
-        chunk_size = args.chunk_size
-        n_chunks = (n + chunk_size - 1) // chunk_size
+        n_chunks = (n + args.chunk_size - 1) // args.chunk_size
 
-        log.info(
-            "Split '%s': %d utterances → %d chunks of up to %d",
-            split, n, n_chunks, chunk_size,
-        )
+        log.info("Split '%s': %d utterances → %d chunks", split, n, n_chunks)
 
         for chunk_idx in range(n_chunks):
-            chunk_path = output_dir / chunk_filename(split, chunk_idx)
+            chunk_path = output_dir / chunk_filename(split, chunk_idx, csv=args.csv)
 
             if chunk_path.exists() and not args.overwrite:
                 log.info("  Chunk %s exists, skipping", chunk_path.name)
                 continue
 
-            start = chunk_idx * chunk_size
-            end = min(start + chunk_size, n)
-            chunk_rows = split_df.iloc[start:end]
+            start = chunk_idx * args.chunk_size
+            end = min(start + args.chunk_size, n)
+            chunk_meta = split_df.iloc[start:end]
 
-            log.info(
-                "  Chunk %d/%d (%s): utterances %d–%d",
-                chunk_idx + 1, n_chunks, split, start, end - 1,
-            )
+            log.info("  Chunk %d/%d: utterances %d–%d", chunk_idx + 1, n_chunks, start, end - 1)
 
-            frames: list[pd.DataFrame] = []
-            chunk_failures: list[dict] = []
+            try:
+                with tempfile.TemporaryDirectory(prefix="vao_chunk_") as tmp_str:
+                    tmp_dir = Path(tmp_str)
+                    for _, row in chunk_meta.iterrows():
+                        src = Path(row["audio_path"])
+                        (tmp_dir / src.name).symlink_to(src)
 
-            # One shared temp dir per chunk; cleaned up when the block exits.
-            with tempfile.TemporaryDirectory(prefix="vao_pp_") as tmp_str:
-                tmp_dir = Path(tmp_str)
+                    df = vao_extract(
+                        tmp_dir,
+                        opensmile_default=opensmile_home,
+                        apply_gate=False,
+                        normalize=False,
+                    )
 
-                for i, (_, row) in enumerate(chunk_rows.iterrows()):
-                    try:
-                        utt_df = process_one(
-                            row, preset_obj, opensmile_home, tmp_dir, apply_gate
-                        )
-                        frames.append(utt_df)
-                    except Exception as exc:
-                        log.error("  FAILED %s: %s", row.get("audio_path", "?"), exc)
-                        chunk_failures.append(
-                            {
-                                "split": row.get("split", ""),
-                                "flac_file_name": row.get("flac_file_name", ""),
-                                "audio_path": row.get("audio_path", ""),
-                                "error": str(exc),
-                                "traceback": traceback.format_exc(),
-                            }
-                        )
+                # Same join as practice_extract.py: strip .wav suffix to match flac_file_name
+                df["flac_file_name"] = df["recording"].str.rsplit(".", n=1).str[0]
+                df = df.merge(chunk_meta[meta_cols], on="flac_file_name", how="left")
 
-                    if (i + 1) % 100 == 0:
-                        log.info(
-                            "    %d/%d utterances done in chunk %d",
-                            i + 1, end - start, chunk_idx + 1,
-                        )
+                if args.csv:
+                    df.to_csv(chunk_path, index=False, na_rep="NaN")
+                else:
+                    df.to_parquet(chunk_path, index=False, compression="zstd")
+                log.info("  Wrote %d frames to %s", len(df), chunk_path.name)
+                del df
 
-            append_failures(fail_log_path, chunk_failures)
-
-            if frames:
-                chunk_df = pd.concat(frames, ignore_index=True)
-                chunk_df.to_parquet(chunk_path, index=False)
-                log.info(
-                    "  Wrote %d frames (%d utterances) to %s",
-                    len(chunk_df), len(frames), chunk_path.name,
-                )
-                del chunk_df
-            else:
-                log.warning("  No frames produced for chunk %d — skipping write", chunk_idx)
-
-            del frames
+            except Exception as exc:
+                log.error("  Chunk %d FAILED: %s", chunk_idx, exc)
+                failures = [
+                    {
+                        "split": row["split"],
+                        "flac_file_name": row["flac_file_name"],
+                        "audio_path": row["audio_path"],
+                        "error": str(exc),
+                        "traceback": traceback.format_exc(),
+                    }
+                    for _, row in chunk_meta.iterrows()
+                ]
+                append_failures(fail_log_path, failures)
 
     if fail_log_path.exists():
-        log.warning("Some files failed — see %s", fail_log_path)
+        log.warning("Some chunks failed — see %s", fail_log_path)
     log.info("Done.")
 
 

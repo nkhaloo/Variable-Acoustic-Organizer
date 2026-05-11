@@ -11,7 +11,7 @@ OPENSMILE_HOME = Path("/home/nkhaloo/Desktop/opensmile")
 OUT_PARQUET = Path(__file__).parent / "output" / "frame_features.parquet"
 
 meta = pd.read_parquet(METADATA)
-meta = meta[meta["audio_exists"].astype(bool)].copy()
+meta = meta.groupby("split", group_keys=False).apply(lambda g: g.sample(1)).reset_index(drop=True)
 
 with tempfile.TemporaryDirectory(prefix="vao_extract_") as tmp:
     tmp_dir = Path(tmp)
@@ -24,5 +24,6 @@ with tempfile.TemporaryDirectory(prefix="vao_extract_") as tmp:
 df["flac_file_name"] = df["recording"].str.rsplit(".", n=1).str[0]
 df = df.merge(meta.drop(columns=["audio_exists"], errors="ignore"), on="flac_file_name", how="left")
 
-df.to_parquet(OUT_PARQUET, index=False, compression="zstd")
-print(f"Saved {len(df):,} frames to {OUT_PARQUET}")
+out = Path(__file__).parent / "practice_output.csv"
+df.to_csv(out, index=False, na_rep="NaN")
+print(f"Saved {len(df):,} frames to {out}")

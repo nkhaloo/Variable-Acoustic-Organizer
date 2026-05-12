@@ -24,7 +24,7 @@ with tempfile.TemporaryDirectory(prefix="vao_extract_") as tmp:
     print(f"  {len(meta):,} files ready")
 
     print("Running vao_extract (this will take a while)...")
-    df = vao_extract(tmp_dir, opensmile_default=OPENSMILE_HOME, apply_gate=False, normalize=False)
+    df = vao_extract(tmp_dir, opensmile_default=OPENSMILE_HOME, apply_gate=False, normalize=False, preprocess=False)
     print(f"  Extraction done: {len(df):,} frames")
 
 print("Merging metadata...")

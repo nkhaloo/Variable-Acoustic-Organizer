@@ -19,7 +19,7 @@ with tempfile.TemporaryDirectory(prefix="vao_test_") as tmp:
         src = Path(row["audio_path"])
         (tmp_dir / src.name).symlink_to(src)
 
-    df = vao_extract(tmp_dir, opensmile_default=OPENSMILE_HOME, apply_gate=True, normalize=False)
+    df = vao_extract(tmp_dir, opensmile_default=OPENSMILE_HOME, apply_gate=True, normalize=False, preprocess=False)
 
 # recording column is the WAV stem (e.g. "T_0000000000.wav"); strip extension to match flac_file_name
 df["flac_file_name"] = df["recording"].str.rsplit(".", n=1).str[0]

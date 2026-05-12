@@ -226,19 +226,21 @@ def extract_features_folder(
         recursive: If True, search for WAV files in all subdirectories.
     """
 
+    AUDIO_EXTENSIONS = {".wav", ".flac", ".mp3", ".ogg", ".aiff", ".aif"}
+
     wav_dir = Path(wav_dir).expanduser()
     if not wav_dir.is_dir():
-        raise NotADirectoryError(f"WAV directory not found: {wav_dir}")
+        raise NotADirectoryError(f"Audio directory not found: {wav_dir}")
 
     out_dir = Path(output_dir).expanduser()
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if recursive:
-        wav_paths = sorted([p for p in wav_dir.rglob("*.wav") if p.is_file()])
+        wav_paths = sorted([p for p in wav_dir.rglob("*") if p.is_file() and p.suffix.lower() in AUDIO_EXTENSIONS])
     else:
-        wav_paths = sorted([p for p in wav_dir.iterdir() if p.is_file() and p.suffix.lower() == ".wav"])
+        wav_paths = sorted([p for p in wav_dir.iterdir() if p.is_file() and p.suffix.lower() in AUDIO_EXTENSIONS])
     if not wav_paths:
-        raise FileNotFoundError(f"No .wav files found in: {wav_dir}")
+        raise FileNotFoundError(f"No audio files found in: {wav_dir}")
 
     n_workers = workers if workers is not None else (os.cpu_count() or 1)
 

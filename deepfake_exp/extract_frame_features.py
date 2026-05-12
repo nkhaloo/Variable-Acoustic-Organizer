@@ -12,8 +12,11 @@ OPENSMILE_HOME = Path("/home/nkhaloo/Desktop/opensmile")
 OUT_PARQUET = Path(__file__).parent / "output" / "frame_features.parquet"
 
 print("Loading metadata...")
-meta = pd.read_parquet(METADATA)
+meta = pd.read_parquet(METADATA).head(10)
 print(f"  {len(meta):,} utterances loaded")
+
+tempfile.tempdir = str(Path.home() / "tmp")
+Path(tempfile.tempdir).mkdir(exist_ok=True)
 
 with tempfile.TemporaryDirectory(prefix="vao_extract_") as tmp:
     tmp_dir = Path(tmp)
@@ -24,7 +27,7 @@ with tempfile.TemporaryDirectory(prefix="vao_extract_") as tmp:
     print(f"  {len(meta):,} files ready")
 
     print("Running vao_extract (this will take a while)...")
-    df = vao_extract(tmp_dir, opensmile_default=OPENSMILE_HOME, apply_gate=False, normalize=False, preprocess=False)
+    df = vao_extract(tmp_dir, opensmile_default=OPENSMILE_HOME, apply_gate=False, normalize=False)
     print(f"  Extraction done: {len(df):,} frames")
 
 print("Merging metadata...")

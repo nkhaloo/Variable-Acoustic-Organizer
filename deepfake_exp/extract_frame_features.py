@@ -12,7 +12,7 @@ OPENSMILE_HOME = Path("/home/nkhaloo/Desktop/opensmile")
 OUT_PARQUET = Path(__file__).parent / "output" / "frame_features.parquet"
 
 print("Loading metadata...")
-meta = pd.read_parquet(METADATA).head(10)
+meta = pd.read_parquet(METADATA)
 print(f"  {len(meta):,} utterances loaded")
 
 tempfile.tempdir = str(Path.home() / "tmp")

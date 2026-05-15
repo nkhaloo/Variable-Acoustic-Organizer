@@ -11,7 +11,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from sklearn.ensemble import GradientBoostingClassifier
+import lightgbm as lgb
 from sklearn.metrics import accuracy_score, roc_auc_score
 from sklearn.preprocessing import LabelEncoder
 
@@ -74,8 +74,8 @@ print(f"Train frames: {len(X_train):,} | Eval frames: {len(X_eval):,}")
 print(f"Classes: {le.classes_}")
 
 # ── Train GBDT ─────────────────────────────────────────────────────────────────
-print("\nTraining GradientBoostingClassifier (default hyperparameters)...")
-clf = GradientBoostingClassifier()
+print("\nTraining LightGBM (default hyperparameters)...")
+clf = lgb.LGBMClassifier()
 clf.fit(X_train, y_train)
 print("  Done.")
 

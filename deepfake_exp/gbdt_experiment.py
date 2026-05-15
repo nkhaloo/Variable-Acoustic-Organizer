@@ -66,7 +66,7 @@ print(f"  {len(eval_df):,} frames")
 meta_cols = ["recording", "flac_file_name", "split", "speaker_id", "audio_path",
              "gender", "codec", "codec_q", "codec_seed", "attack_tag", "attack_label",
              "key", "name", "frameTime"]
-feature_cols = [c for c in train_df.columns if c not in meta_cols and train_df[c].dtype != object]
+feature_cols = [c for c in train_df.columns if c not in meta_cols and pd.api.types.is_numeric_dtype(train_df[c])]
 
 # Aggregate frames to utterance level (mean per feature)
 train_utt = train_df.groupby("flac_file_name")[feature_cols].mean()

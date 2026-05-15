@@ -19,7 +19,7 @@ from vao import vao_extract
 
 METADATA       = Path(__file__).parent / "output" / "asvspoof5_track1_metadata.parquet"
 OPENSMILE_HOME = Path("/home/nkhaloo/Desktop/opensmile")
-N_SAMPLES      = 250
+N_SAMPLES      = 1000
 
 
 def extract(rows: pd.DataFrame, tmp_dir: Path) -> pd.DataFrame:

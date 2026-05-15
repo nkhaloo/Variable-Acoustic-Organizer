@@ -27,7 +27,7 @@ def extract(rows: pd.DataFrame, tmp_dir: Path) -> pd.DataFrame:
         src = Path(row["audio_path"])
         (tmp_dir / src.name).symlink_to(src)
 
-    df = vao_extract(tmp_dir, opensmile_default=OPENSMILE_HOME, apply_gate=False, normalize=False)
+    df = vao_extract(tmp_dir, opensmile_default=OPENSMILE_HOME, apply_gate=True, normalize=False)
     df["flac_file_name"] = df["recording"].str.rsplit(".", n=1).str[0]
     df = df.merge(rows.drop(columns=["audio_exists"], errors="ignore"), on="flac_file_name", how="left")
     return df

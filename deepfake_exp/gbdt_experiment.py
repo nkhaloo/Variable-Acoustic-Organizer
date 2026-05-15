@@ -68,15 +68,22 @@ meta_cols = ["recording", "flac_file_name", "split", "speaker_id", "audio_path",
              "key", "name", "frameTime"]
 feature_cols = [c for c in train_df.columns if c not in meta_cols and train_df[c].dtype != object]
 
-le = LabelEncoder()
-X_train = train_df[feature_cols].fillna(0)
-y_train = le.fit_transform(train_df["key"])
+# Aggregate frames to utterance level (mean per feature)
+train_utt = train_df.groupby("flac_file_name")[feature_cols].mean()
+train_utt["key"] = train_df.groupby("flac_file_name")["key"].first()
 
-X_eval = eval_df[feature_cols].fillna(0)
-y_eval = le.transform(eval_df["key"])
+eval_utt = eval_df.groupby("flac_file_name")[feature_cols].mean()
+eval_utt["key"] = eval_df.groupby("flac_file_name")["key"].first()
+
+le = LabelEncoder()
+X_train = train_utt[feature_cols].fillna(0)
+y_train = le.fit_transform(train_utt["key"])
+
+X_eval = eval_utt[feature_cols].fillna(0)
+y_eval = le.transform(eval_utt["key"])
 
 print(f"\nFeature columns: {len(feature_cols)}")
-print(f"Train frames: {len(X_train):,} | Eval frames: {len(X_eval):,}")
+print(f"Train utterances: {len(X_train)} | Eval utterances: {len(X_eval)}")
 print(f"Classes: {le.classes_}")
 
 # ── Train GBDT ─────────────────────────────────────────────────────────────────

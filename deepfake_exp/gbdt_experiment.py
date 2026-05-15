@@ -38,8 +38,14 @@ print("Loading metadata...")
 meta = pd.read_parquet(METADATA)
 meta = meta[meta["audio_exists"].astype(bool)]
 
-train_sample = meta[meta["split"] == "train"].sample(N_SAMPLES, random_state=42).reset_index(drop=True)
-eval_sample  = meta[meta["split"] == "eval"].sample(N_SAMPLES, random_state=42).reset_index(drop=True)
+def balanced_sample(df, n, seed=42):
+    half = n // 2
+    spoof    = df[df["key"] == "spoof"].sample(half, random_state=seed)
+    bonafide = df[df["key"] == "bonafide"].sample(half, random_state=seed)
+    return pd.concat([spoof, bonafide]).reset_index(drop=True)
+
+train_sample = balanced_sample(meta[meta["split"] == "train"], N_SAMPLES)
+eval_sample  = balanced_sample(meta[meta["split"] == "eval"],  N_SAMPLES)
 print(f"  Train: {N_SAMPLES} utterances | Eval: {N_SAMPLES} utterances")
 
 # ── Extract features ───────────────────────────────────────────────────────────
@@ -103,3 +109,4 @@ plt.tight_layout()
 out_plot = Path(__file__).parent / "feature_importances.png"
 fig.savefig(out_plot, dpi=150)
 print(f"\nPlot saved to {out_plot}")
+plt.show()

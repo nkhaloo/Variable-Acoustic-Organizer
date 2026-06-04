@@ -19,7 +19,10 @@ from vao import vao_extract
 
 METADATA       = Path(__file__).parent / "output" / "asvspoof5_track1_metadata.parquet"
 OPENSMILE_HOME = Path("/home/nkhaloo/Desktop/opensmile")
+CACHE_DIR      = Path(__file__).parent / "output" / "gbdt_cache"
 N_SAMPLES      = 1000
+
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def extract(rows: pd.DataFrame, tmp_dir: Path) -> pd.DataFrame:
@@ -48,25 +51,39 @@ train_sample = balanced_sample(meta[meta["split"] == "train"], N_SAMPLES)
 eval_sample  = balanced_sample(meta[meta["split"] == "eval"],  N_SAMPLES)
 print(f"  Train: {N_SAMPLES} utterances | Eval: {N_SAMPLES} utterances")
 
-# ── Extract features ───────────────────────────────────────────────────────────
+# ── Extract features (cached) ──────────────────────────────────────────────────
 tempfile.tempdir = str(Path.home() / "tmp")
 Path(tempfile.tempdir).mkdir(exist_ok=True)
 
-print("Extracting train features...")
-with tempfile.TemporaryDirectory(prefix="vao_train_") as tmp:
-    train_df = extract(train_sample, Path(tmp))
+train_cache = CACHE_DIR / f"train_{N_SAMPLES}.parquet"
+eval_cache  = CACHE_DIR / f"eval_{N_SAMPLES}.parquet"
+
+if train_cache.exists():
+    print("Loading cached train features...")
+    train_df = pd.read_parquet(train_cache)
+else:
+    print("Extracting train features...")
+    with tempfile.TemporaryDirectory(prefix="vao_train_") as tmp:
+        train_df = extract(train_sample, Path(tmp))
+    train_df.to_parquet(train_cache, index=False, compression="zstd")
 print(f"  {len(train_df):,} frames")
 
-print("Extracting eval features...")
-with tempfile.TemporaryDirectory(prefix="vao_eval_") as tmp:
-    eval_df = extract(eval_sample, Path(tmp))
+if eval_cache.exists():
+    print("Loading cached eval features...")
+    eval_df = pd.read_parquet(eval_cache)
+else:
+    print("Extracting eval features...")
+    with tempfile.TemporaryDirectory(prefix="vao_eval_") as tmp:
+        eval_df = extract(eval_sample, Path(tmp))
+    eval_df.to_parquet(eval_cache, index=False, compression="zstd")
 print(f"  {len(eval_df):,} frames")
 
 # ── Prepare features and labels ────────────────────────────────────────────────
 meta_cols = ["recording", "flac_file_name", "split", "speaker_id", "audio_path",
              "gender", "codec", "codec_q", "codec_seed", "attack_tag", "attack_label",
              "key", "name", "frameTime"]
-feature_cols = [c for c in train_df.columns if c not in meta_cols and pd.api.types.is_numeric_dtype(train_df[c])]
+numeric_cols = train_df.select_dtypes(include="number").columns.tolist()
+feature_cols = [c for c in numeric_cols if c not in meta_cols]
 
 # Aggregate frames to utterance level (mean per feature)
 train_utt = train_df.groupby("flac_file_name")[feature_cols].mean()

@@ -1,18 +1,6 @@
 # Variable Acoustic Organizer (VAO)
 
-VAO is a Python package for frame-level acoustic feature extraction and acoustic segment classification. It wraps openSMILE's `SMILExtract` binary to produce per-frame eGeMAPSv02 features, then optionally classifies each frame as **silence**, **obstruent**, or **sonorant** using a trained gate model.
-
-## What it does
-
-**Feature extraction** — VAO runs openSMILE's eGeMAPSv02 LLD preset (25 ms Hann window, 10 ms hop) on every audio file in a folder, yielding ~88 acoustic features per frame: loudness, spectral balance (alpha ratio, Hammarberg index, spectral slope), MFCCs 1–4, F0, jitter, shimmer, HNR, formant frequencies and bandwidths (F1–F5), spectral shape (roll-off, centroid, entropy, variance, skewness, kurtosis), and their delta coefficients. Placeholder zeros emitted by openSMILE for undefined frames are converted to `NaN` automatically.
-
-**Acoustic gate** — A `HistGradientBoostingClassifier` trained on TIMIT labels every 10 ms frame as `silence`, `obstruent`, or `sonorant` using 48 spectral/energy/voicing features. The gate is pre-trained and ships inside the package as `gate/model.joblib`. Training used sqrt-inverse-frequency sample weighting to handle TIMIT's class imbalance.
-
-**Optional post-processing**
-- `mask_features=True` — NaN out acoustically invalid features per class: silence removes all features; obstruents remove F0, jitter, shimmer, H1-H2, H1-A3, and formant features (+ deltas); sonorants keep everything.
-- `normalize=True` — per-recording z-score normalization of all acoustic columns.
-- `smooth_gate=True` — temporal smoothing that removes short isolated segment runs (default: ≥30 ms for obstruent/sonorant, ≥100 ms for silence).
-- `frame_level=False` — aggregate frames to utterance level (mean + std per feature), the traditional openSMILE functional approach.
+VAO gates speech into **silence**, **obstruent**, and **sonorant** directly from acoustics—no transcript or forced alignment required. A pre-trained classifier uses openSMILE features to label each 10 ms frame, so you can select sound classes and analyze their acoustic features.
 
 ## Installation
 
@@ -20,15 +8,34 @@ VAO is a Python package for frame-level acoustic feature extraction and acoustic
 pip install git+https://github.com/nkhaloo/Variable-Acoustic-Organizer.git
 ```
 
-or
+### Download openSMILE and its configurations
+
+Install the build tools and `ffmpeg` first. On **macOS**, with [Homebrew](https://brew.sh/) installed:
 
 ```bash
-git clone https://github.com/nkhaloo/Variable-Acoustic-Organizer.git
-cd Variable-Acoustic-Organizer
-pip install -e .
+xcode-select --install  # If Command Line Tools are not already installed
+brew install git cmake ffmpeg
 ```
 
-Requires openSMILE (the repo/install root is passed at call time) and `ffmpeg` on `PATH` for audio preprocessing.
+On **Ubuntu/Debian**:
+
+```bash
+sudo apt update
+sudo apt install git build-essential cmake ffmpeg
+```
+
+Then download the [official openSMILE repository](https://github.com/audeering/opensmile#quick-start) and compile its executable:
+
+```bash
+git clone https://github.com/audeering/opensmile.git ~/opensmile
+cd ~/opensmile
+bash build.sh
+./build/progsrc/smilextract/SMILExtract -h
+```
+
+The last command checks that the executable runs. VAO finds it at `~/opensmile/build/progsrc/smilextract/SMILExtract` when you pass `opensmile_home="~/opensmile"`.
+
+The download also includes the `config/` files VAO needs. VAO bundles its own frame-level configuration; no manual configuration edits are needed.
 
 ## Usage
 
@@ -37,42 +44,30 @@ from vao import vao_extract
 
 df = vao_extract(
     "/path/to/audio/",
-    opensmile_home="/path/to/opensmile",
+    opensmile_home="~/opensmile",
     apply_gate=True,
-    mask_features=True,
-    normalize=True,
 )
-df.to_csv("features.csv", index=False, na_rep="NaN")
+df.to_csv("gated_features.csv", index=False, na_rep="NaN")
 ```
 
-`vao_extract` returns a DataFrame with one row per 10 ms frame across all recordings. Each row has a `recording` column and, if `apply_gate=True`, a `segment_class` column (`silence`/`obstruent`/`sonorant`).
+Each row contains a recording ID, frame time, acoustic features, and a `segment_class` label. Optional settings: `mask_features=True` masks features unsuitable for each class, `smooth_gate=True` smooths short label runs, and `normalize=True` normalizes features per recording.
 
-## Gate model
+Example output (selected rows and columns, with masking and normalization enabled; values rounded and recording renamed). `frameTime` is in seconds; `NaN` marks masked or undefined features.
 
-The gate is trained on TIMIT (6,300 utterances, ~462k labeled frames). TIMIT phoneme symbols are mapped to three classes:
+| recording | frameTime | Loudness_sma3 | mfcc1_sma3 | segment_class |
+|---|---:|---:|---:|---|
+| test.wav | 0.00 | NaN | NaN | silence |
+| test.wav | 0.47 | -1.289 | -1.463 | obstruent |
+| test.wav | 0.52 | -0.799 | -2.399 | sonorant |
 
-| Class | Phonemes |
-|---|---|
-| silence | `h#`, `pau`, `epi`, stop closures (`bcl`, `dcl`, …) |
-| obstruent | stops, affricates, fricatives (`b`, `d`, `g`, `p`, `t`, `k`, `s`, `sh`, `f`, `v`, …) |
-| sonorant | nasals, glides, semivowels, vowels (`m`, `n`, `l`, `r`, `w`, `y`, `iy`, `ah`, …) |
+## Gate performance
 
-To retrain the gate:
-```bash
-python -m vao.gate.train \
-    --timit /path/to/timit/data \
-    --train-csv /path/to/timit_train.csv \
-    --test-csv /path/to/timit_test.csv \
-    --out src/vao/gate/model.joblib
-```
+The bundled gradient-boosting classifier was trained on TIMIT. Saved results on 278,474 test frames: **92.4% accuracy**, **81.3% macro F1**.
 
-## Deepfake detection experiment
+| Class | Precision | Recall | F1 |
+|---|---:|---:|---:|
+| Silence | 62.6% | 76.6% | 68.9% |
+| Obstruent | 76.5% | 81.0% | 78.7% |
+| Sonorant | 97.4% | 95.2% | 96.3% |
 
-`deepfake_exp/gbdt_experiment.py` tests whether raw VAO frame-level features carry enough signal for spoof detection on **ASVspoof5 Track 1**. The setup:
-
-- 1,000 utterances sampled from each split (500 spoof / 500 bonafide, balanced)
-- VAO extraction with `apply_gate=True`, `normalize=False`
-- Frames are aggregated to utterance level by taking the mean of each feature
-- A `LGBMClassifier` (LightGBM, default hyperparameters) is trained on mean-aggregated utterance features and evaluated on the held-out eval split
-
-The experiment is a baseline sanity check — it treats the gate output and raw eGeMAPSv02 means as utterance-level descriptors without any temporal modeling. Its purpose is to confirm that the feature space is informative before more complex frame-level models are applied.
+Sonorants account for most test frames; macro F1 gives each class equal weight.

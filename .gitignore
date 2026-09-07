@@ -1,6 +1,5 @@
 # Generated outputs — large files, not committed
 output/
-deepfake_exp/output/
 
 # Test artifacts
 *.htk
